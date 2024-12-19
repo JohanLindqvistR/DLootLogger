@@ -1,0 +1,20 @@
+## Interface: 100007
+## Title: DLootLogger
+## Notes: Logs need roll winners, and the boss the loot came from with timestamps and copyable text box
+## Author: Draup
+## Version: 1.0
+
+## SavedVariables: LootLoggerDB
+## SavedVariablesPerCharacter: ChatAnnounce
+
+# Libraries
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0\CallbackHandler-1.0.xml
+Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+Libs\LibDBIcon-1.0\embeds.xml
+
+Utils.lua
+Database.lua
+UI.lua
+MinimapIcon.lua
+DLootLogger.lua
