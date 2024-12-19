@@ -1,4 +1,4 @@
-## Interface: 100007
+## Interface: 110007
 ## Title: DLootLogger
 ## Notes: Logs need roll winners, and the boss the loot came from with timestamps and copyable text box
 ## Author: Draup
