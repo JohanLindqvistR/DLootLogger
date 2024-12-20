@@ -1,4 +1,4 @@
-package-as: DLooyLogger
+package-as: DLootLogger
 enable-toc-creation: yes
 
 ignore:
