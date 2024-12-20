@@ -1,0 +1,8 @@
+package-as: DLooyLogger
+enable-toc-creation: yes
+
+ignore:
+    - .github
+    - .gitignore
+    - .previews
+    - README.md
