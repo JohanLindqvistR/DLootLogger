@@ -1,4 +1,7 @@
 ## Interface: 110007
+## Interface-Classic: 11503
+## Interface-Wrath: 30403
+## Interface-Cata: 40400
 ## Title: DLootLogger
 ## Notes: Logs need roll winners, and the boss the loot came from with timestamps and copyable text box
 ## Author: Draup
