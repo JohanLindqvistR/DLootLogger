@@ -5,7 +5,6 @@ local _, LootLogger = ...
 LootLogger.UI = LootLogger.UI or {}
 
 local mainFrame = nil
-local tradeFrame = nil
 local lootTable = nil
 local sortOrder = {}
 
@@ -195,71 +194,6 @@ function LootLogger.UI:CreateNewSessionDialog()
     }
 end
 
-function LootLogger.UI:ShowContextMenu(data, parent)
-    local menu = CreateFrame("Frame", "LootLoggerContextMenu", UIParent, "UIDropDownMenuTemplate")
-    
-    local function InitMenu(self, level)
-        local info = UIDropDownMenu_CreateInfo()
-        
-        if level == 1 then
-		
-            -- Add a header with player and item information
-            info.isTitle = true
-            info.notCheckable = true
-            info.text = "Selected: " .. data.player .. " - " .. data.item
-            UIDropDownMenu_AddButton(info, level)
-
-            -- Add a separator
-            info = UIDropDownMenu_CreateInfo()
-            info.disabled = true
-            info.notCheckable = true
-            UIDropDownMenu_AddButton(info, level)	
-
-			info.disabled = false
-			info.notCheckable = false
-		
-            -- Trade item option
-			info.text = "Trade Item"
-            info.func = function() LootLogger.UI:ShowTradeFrame(data) end
-            UIDropDownMenu_AddButton(info, level)
-            
-            -- Delete item option
-			info.text = "Delete Item"
-            info.func = function() LootLogger.UI:ConfirmDeleteItem(data) end
-            UIDropDownMenu_AddButton(info, level)
-            
-            info.text = "Bark Selected Players Items Options"
-            info.hasArrow = true
-            info.notCheckable = true
-            info.func = nil
-            info.value = "BARK_OPTIONS"
-            UIDropDownMenu_AddButton(info, level)
-        elseif level == 2 then
-            if UIDROPDOWNMENU_MENU_VALUE == "BARK_OPTIONS" then
-                info.hasArrow = false
-                info.notCheckable = true
-                
-                info.text = "Whisper to Player"
-                info.func = function() LootLogger:BarkLoot(data.player, "WHISPER") end
-                UIDropDownMenu_AddButton(info, level)
-                
-                info.text = "Bark to Raid"
-                info.func = function() LootLogger:BarkLoot(data.player, "RAID") end
-                UIDropDownMenu_AddButton(info, level)
-                
-                info.text = "Bark to Officer"
-                info.func = function() LootLogger:BarkLoot(data.player, "OFFICER") end
-                UIDropDownMenu_AddButton(info, level)
-            end
-        end
-    end
-    
-    UIDropDownMenu_Initialize(menu, InitMenu, "MENU")
-    
-	-- Toggle the dropdown at the cursor
-    ToggleDropDownMenu(1, nil, menu, "cursor", 0, 0)
-end
-
 function LootLogger.UI:PopulateLootTable(lootData)
     -- Clear existing rows
     for i = lootTable:GetNumChildren(), 1, -1 do
@@ -318,8 +252,6 @@ function LootLogger.UI:PopulateLootTable(lootData)
         row:SetScript("OnClick", function(self, button)
             if button == "LeftButton" then
                 ChatEdit_InsertLink(data.item)
-            elseif button == "RightButton" then
-                LootLogger.UI:ShowContextMenu(data, self)
             end
         end)
 
@@ -327,146 +259,6 @@ function LootLogger.UI:PopulateLootTable(lootData)
     end
 
     lootTable:SetHeight(#lootData * rowHeight)
-end
-
-function LootLogger.UI:CreateTradeFrame()
-    tradeFrame = CreateFrame("Frame", "TradeFrame", UIParent, "BasicFrameTemplateWithInset")
-    tradeFrame:SetFrameStrata("DIALOG")
-    tradeFrame:SetFrameLevel(100)
-    tradeFrame:SetSize(500, 200)
-    tradeFrame:SetPoint("CENTER")
-    tradeFrame:SetMovable(true)
-    tradeFrame:EnableMouse(true)
-    tradeFrame:RegisterForDrag("LeftButton")
-    tradeFrame:SetScript("OnDragStart", tradeFrame.StartMoving)
-    tradeFrame:SetScript("OnDragStop", tradeFrame.StopMovingOrSizing)
-    tradeFrame:Hide()
-
-    tradeFrame.title = tradeFrame:CreateFontString(nil, "OVERLAY")
-    tradeFrame.title:SetFontObject("GameFontHighlight")
-    tradeFrame.title:SetPoint("LEFT", tradeFrame.TitleBg, "LEFT", 5, 0)
-    tradeFrame.title:SetText("Item Trade")
-
-    local player1Dropdown = CreateFrame("FRAME", "Player1DropDown", tradeFrame, "UIDropDownMenuTemplate")
-    player1Dropdown:SetPoint("TOPLEFT", 10, -50)
-    UIDropDownMenu_SetWidth(player1Dropdown, 180)
-
-    local player1Label = tradeFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    player1Label:SetPoint("BOTTOMLEFT", player1Dropdown, "TOPLEFT", 16, 2)
-    player1Label:SetText("Sender")
-
-    local player2Dropdown = CreateFrame("FRAME", "Player2DropDown", tradeFrame, "UIDropDownMenuTemplate")
-    player2Dropdown:SetPoint("TOPLEFT", 250, -50)
-    UIDropDownMenu_SetWidth(player2Dropdown, 180)
-
-    local player2Label = tradeFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    player2Label:SetPoint("BOTTOMLEFT", player2Dropdown, "TOPLEFT", 16, 2)
-    player2Label:SetText("Recipient")
-
-    local itemDropdown = CreateFrame("FRAME", "ItemDropDown", tradeFrame, "UIDropDownMenuTemplate")
-    itemDropdown:SetPoint("TOPLEFT", 10, -90)
-    UIDropDownMenu_SetWidth(itemDropdown, 180)
-
-    local confirmButton = CreateFrame("Button", nil, tradeFrame, "GameMenuButtonTemplate")
-    confirmButton:SetPoint("BOTTOM", 0, 20)
-    confirmButton:SetSize(140, 40)
-    confirmButton:SetText("Confirm Trade")
-
-    confirmButton:SetScript("OnClick", function()
-        local player1 = UIDropDownMenu_GetText(player1Dropdown)
-        local player2 = UIDropDownMenu_GetText(player2Dropdown)
-        local item = UIDropDownMenu_GetText(itemDropdown)
-        
-        if player1 and player2 and item then
-            LootLogger:TradeItem(player1, player2, item)
-            tradeFrame:Hide()
-            UIDropDownMenu_SetText(player1Dropdown, "")
-            UIDropDownMenu_SetText(player2Dropdown, "")
-            UIDropDownMenu_SetText(itemDropdown, "")
-        else
-            print("Please select players and item to trade")
-        end
-    end)
-
-    self.InitializeTradeDropDown = function(dropdown, level)
-        UIDropDownMenu_Initialize(dropdown, nil)
-        
-        if dropdown == player1Dropdown then
-            for player, data in pairs(LootLogger.Database:GetLootData()) do
-                local info = UIDropDownMenu_CreateInfo()
-                info.text = player
-                info.func = function(selfArg)
-                    UIDropDownMenu_SetText(dropdown, selfArg.value)
-                    UIDropDownMenu_Initialize(itemDropdown, self.InitializeTradeDropDown)
-                    UIDropDownMenu_SetText(itemDropdown, "Select an Item")
-                end
-                UIDropDownMenu_AddButton(info)
-            end
-        elseif dropdown == player2Dropdown then
-            local addedPlayers = {}
-            local numGroupMembers = GetNumGroupMembers()
-            
-            for i = 1, numGroupMembers do
-                local name = GetRaidRosterInfo(i) or UnitName("party" .. i) or UnitName("raid" .. i)
-                
-                if name and not addedPlayers[name] then
-                    local info = UIDropDownMenu_CreateInfo()
-                    info.text = name
-                    info.func = function(selfArg)
-                        UIDropDownMenu_SetText(dropdown, selfArg.value)
-                    end
-                    UIDropDownMenu_AddButton(info)
-                    addedPlayers[name] = true
-                end
-            end
-            
-            for player, _ in pairs(LootLogger.Database:GetLootData()) do
-                if not addedPlayers[player] then
-                    local info = UIDropDownMenu_CreateInfo()
-                    info.text = player
-                    info.func = function(selfArg)
-                        UIDropDownMenu_SetText(dropdown, selfArg.value)
-                    end
-                    UIDropDownMenu_AddButton(info)
-                    addedPlayers[player] = true
-                end
-            end
-        elseif dropdown == itemDropdown then
-            local selectedPlayer = UIDropDownMenu_GetText(player1Dropdown)
-            local playerData = LootLogger.Database:GetPlayerLoot(selectedPlayer)
-            if selectedPlayer and playerData then
-                for _, itemData in pairs(playerData.itemsWon) do
-                    local info = UIDropDownMenu_CreateInfo()
-                    info.text = itemData.item
-                    info.func = function(selfArg)
-                        UIDropDownMenu_SetText(dropdown, selfArg.value)
-                    end
-                    UIDropDownMenu_AddButton(info)
-                end
-            else
-                local info = UIDropDownMenu_CreateInfo()
-                info.text = "No Items"
-                info.disabled = true
-                UIDropDownMenu_AddButton(info)
-            end
-        end
-    end
-
-    UIDropDownMenu_Initialize(player1Dropdown, self.InitializeTradeDropDown)
-    UIDropDownMenu_Initialize(player2Dropdown, self.InitializeTradeDropDown)
-    UIDropDownMenu_Initialize(itemDropdown, self.InitializeTradeDropDown)
-end
-
-function LootLogger.UI:ShowTradeFrame(data)
-    if not tradeFrame then
-        self:CreateTradeFrame()
-    end
-    
-    UIDropDownMenu_SetText(Player1DropDown, data.player)
-    UIDropDownMenu_SetText(ItemDropDown, data.item)
-    UIDropDownMenu_SetText(Player2DropDown, "")
-    
-    tradeFrame:Show()
 end
 
 function LootLogger.UI:ConfirmDeleteItem(data)

@@ -183,63 +183,6 @@ function LootLogger.Database:GetPlayerLoot(player)
     return LootLogger.Utils.DeepCopy(playerLootWins[player])
 end
 
-function LootLogger.Database:TradeItem(player1, player2, item)
-    if not playerLootWins[player1] then
-        print("Error: Player1 (" .. player1 .. ") does not exist in the loot table.")
-        return false
-    end
-
-    local itemIndex = nil
-    local itemData = nil
-    for i, wonItem in ipairs(playerLootWins[player1].itemsWon) do
-        if wonItem.item == item then
-            itemIndex = i
-            itemData = LootLogger.Utils.DeepCopy(wonItem)
-            break
-        end
-    end
-
-    if not itemIndex then
-        print("Error: Player1 (" .. player1 .. ") does not have the item: " .. item)
-        return false
-    end
-
-    if not playerLootWins[player2] then
-        playerLootWins[player2] = {
-            totalWins = 0,
-            itemsWon = {}
-        }
-    end
-
-    table.insert(playerLootWins[player2].itemsWon, itemData)
-    playerLootWins[player2].totalWins = playerLootWins[player2].totalWins + 1
-
-    table.remove(playerLootWins[player1].itemsWon, itemIndex)
-    playerLootWins[player1].totalWins = playerLootWins[player1].totalWins - 1
-
-    self:Save()
-    return true
-end
-
-function LootLogger.Database:DeleteItem(player, item)
-    if not playerLootWins[player] then
-        print("Error: Player (" .. player .. ") does not exist in the loot table.")
-        return false
-    end
-
-    for i, wonItem in ipairs(playerLootWins[player].itemsWon) do
-        if wonItem.item == item then
-            table.remove(playerLootWins[player].itemsWon, i)
-            playerLootWins[player].totalWins = playerLootWins[player].totalWins - 1
-            self:Save()
-            return true
-        end
-    end
-
-    print("Error: Item (" .. item .. ") not found for player (" .. player .. ").")
-    return false
-end
-
 function LootLogger.Database:GetSortedLootData()
     local sortedData = {}
     for player, data in pairs(playerLootWins) do
@@ -259,37 +202,9 @@ function LootLogger.Database:ExportData()
     local exportString = ""
     for player, data in pairs(playerLootWins) do
         for _, itemData in ipairs(data.itemsWon) do
-            exportString = exportString .. player .. ";" .. itemData.item .. ";" .. itemData.boss .. ";" .. itemData.timestamp .. ")\n"
+            itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, sellPrice, classID, subclassID, bindType, expansionID, setID, isCraftingReagent = C_Item.GetItemInfo(itemData.item)
+            exportString = exportString .. player .. ";" .. itemName .. ";" .. itemLevel .. ";" .. itemType .. ";" .. itemSubType .. ";" .. itemData.boss .. ";" .. itemData.timestamp .. ")\n"
         end
     end
     return exportString
-end
-function LootLogger.Database:ImportData(importString)
-    -- This is a basic implementation. You might want to add more error checking and validation.
-    local newData = {}
-    local currentPlayer = nil
-    
-    for line in importString:gmatch("[^\r\n]+") do
-        local player, totalWins = line:match("^(.+) has won (%d+) item%(s%):")
-        if player and totalWins then
-            currentPlayer = player
-            newData[currentPlayer] = {
-                totalWins = tonumber(totalWins),
-                itemsWon = {}
-            }
-        elseif currentPlayer then
-            local item, boss, timestamp = line:match("^  %- (.+) %(Boss: (.+), Time: (.+)%)$")
-            if item and boss and timestamp then
-                table.insert(newData[currentPlayer].itemsWon, {
-                    item = item,
-                    boss = boss,
-                    timestamp = timestamp
-                })
-            end
-        end
-    end
-    
-    playerLootWins = newData
-    self:Save()
-    print("LootLogger: Data imported successfully.")
 end
